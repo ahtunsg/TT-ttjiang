@@ -13,7 +13,7 @@
 
 ## 使用方式
 
-1. 从 [Releases 页面](https://github.com/ahtunsg/ttjiang/releases/latest) 下载 `TTjiang-2.0.0-win10-win11.zip`，解压到任意有写入权限的本地目录（例如桌面、D 盘）。
+1. 从 [Releases 页面](https://github.com/ahtunsg/ttjiang/releases/latest) 下载 `TTjiang-2.0.0.zip`，解压到任意有写入权限的本地目录（例如桌面、D 盘）。
 2. 双击 `TT酱.exe`。首次启动会做两件事：
    - 把内置的 Everything、SDK3 查询组件与命令行工具释放到同级 `everything` 目录；
    - 询问是否安装索引服务（一次管理员授权）。装好之后每次启动都不再询问。如果系统里已经有 Everything 的索引服务，TT酱 直接共用，不会重复安装。
