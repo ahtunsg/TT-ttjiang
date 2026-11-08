@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- 只面向 Windows 10 / Windows 11：.NET Framework 4.8 在两套系统上均为系统内置组件，
+         因此产物是一个单文件 exe，不需要安装任何运行时。 -->
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>TT酱</AssemblyName>
+    <RootNamespace>TTJiang</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <LangVersion>10</LangVersion>
+    <NoWarn>$(NoWarn);WFAC010;CS1591</NoWarn>
+    <Product>TT酱</Product>
+    <AssemblyTitle>TT酱</AssemblyTitle>
+    <Version>2.0.0</Version>
+    <NeutralLanguage>zh-Hans</NeutralLanguage>
+    <Deterministic>true</Deterministic>
+    <DebugType>none</DebugType>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- app.ico 只作为 ApplicationIcon 编入 Win32 RT_ICON；窗口图标复用同一份 logo.png，
+         避免同一份图标数据在程序集里存两遍。 -->
+    <Resource Include="logo.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 内置 Everything 主程序、SDK3 DLL、命令行工具与 MIT 许可声明，
+         运行时释放到 exe 同级 everything 目录 -->
+    <EmbeddedResource Include="..\vendor\everything.zip" LogicalName="TTJiang.Everything.zip" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="System.ServiceProcess" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 只提供编译期参考程序集，不进产物 -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net48" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

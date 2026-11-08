@@ -1,0 +1,260 @@
+<Window x:Class="TTJiang.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="TT酱"
+        Icon="logo.png"
+        Height="600" Width="800" MinHeight="460" MinWidth="620"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BgBrush}"
+        Foreground="{StaticResource TextBrush}"
+        FontFamily="Microsoft YaHei UI"
+        TextOptions.TextFormattingMode="Display"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True">
+
+    <Border Background="{StaticResource PanelBrush}"
+            BorderBrush="{StaticResource PanelBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="8"
+            Margin="14">
+        <Grid Margin="22,18,22,16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- 搜索框：虚线框，参考导航页样式 -->
+            <Grid Grid.Row="0" Height="46">
+                <Rectangle RadiusX="6" RadiusY="6"
+                           Fill="{StaticResource InputBrush}"
+                           Stroke="{StaticResource DashBrush}"
+                           StrokeThickness="1"
+                           StrokeDashArray="4 3"
+                           SnapsToDevicePixels="True" />
+                <!-- 品牌徽标：与标题栏 / 托盘使用同一形象，浅色界面里也一眼可见 -->
+                <Image Source="logo.png"
+                       Width="30" Height="30"
+                       HorizontalAlignment="Left"
+                       VerticalAlignment="Center"
+                       Margin="8,0,0,0"
+                       IsHitTestVisible="False"
+                       SnapsToDevicePixels="True"
+                       RenderOptions.BitmapScalingMode="HighQuality" />
+                <Rectangle Width="1" Height="20"
+                           Fill="{StaticResource LineBrush}"
+                           HorizontalAlignment="Left"
+                           VerticalAlignment="Center"
+                           Margin="44,0,0,0"
+                           IsHitTestVisible="False" />
+                <TextBox x:Name="SearchBox"
+                         Style="{StaticResource PlainTextBox}"
+                         FontSize="15"
+                         Padding="56,0,14,0"
+                         TextChanged="SearchBox_TextChanged"
+                         KeyDown="SearchBox_KeyDown" />
+                <TextBlock x:Name="SearchHint"
+                           Text="搜索文件，或输入 dx 12345 转中文大写"
+                           FontSize="15"
+                           Foreground="{StaticResource FaintBrush}"
+                           VerticalAlignment="Center"
+                           Margin="57,0,0,0"
+                           IsHitTestVisible="False" />
+            </Grid>
+
+            <!-- 内容区：图标网格 / 搜索结果 / 数字大写 -->
+            <Grid Grid.Row="1" Margin="0,18,0,0">
+                <ScrollViewer x:Name="TileScroll"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <WrapPanel x:Name="TilePanel" />
+                </ScrollViewer>
+
+                <!-- 结果区：虚拟列表 + 提示覆盖层。Count 是全部命中数，只渲染可见行。 -->
+                <Grid x:Name="ResultArea" Visibility="Collapsed" Margin="0,30,0,0">
+                    <ListBox x:Name="ResultList"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             Padding="0"
+                             ScrollViewer.CanContentScroll="True"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             VirtualizingStackPanel.IsVirtualizing="True"
+                             VirtualizingStackPanel.VirtualizationMode="Recycling"
+                             PreviewMouseLeftButtonUp="ResultList_PreviewMouseLeftButtonUp"
+                             PreviewMouseRightButtonUp="ResultList_PreviewMouseRightButtonUp">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="Margin" Value="0" />
+                                <Setter Property="BorderThickness" Value="0" />
+                                <Setter Property="Background" Value="Transparent" />
+                                <Setter Property="Focusable" Value="False" />
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border x:Name="RowBg"
+                                                    Background="{TemplateBinding Background}"
+                                                    BorderThickness="0">
+                                                <ContentPresenter />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="RowBg" Property="Background"
+                                                            Value="{StaticResource HoverBrush}" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Height="46"
+                                        Padding="10,4,10,4"
+                                        Cursor="Hand"
+                                        Tag="{Binding}"
+                                        ToolTip="{Binding FullPath}">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Name}"
+                                                   FontSize="13"
+                                                   Foreground="{StaticResource TextBrush}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <DockPanel Margin="0,2,0,0">
+                                            <TextBlock Text="{Binding MetaText}"
+                                                       DockPanel.Dock="Right"
+                                                       FontSize="11"
+                                                       Foreground="{StaticResource MutedBrush}"
+                                                       HorizontalAlignment="Right"
+                                                       MaxWidth="230"
+                                                       Margin="12,0,2,0"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding Directory}"
+                                                       FontSize="11"
+                                                       Foreground="{StaticResource MutedBrush}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </DockPanel>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <Border x:Name="MessagePanel"
+                            Visibility="Collapsed"
+                            Background="{StaticResource BgBrush}"
+                            Padding="6,14,6,0">
+                        <StackPanel x:Name="MessageStack" />
+                    </Border>
+                </Grid>
+
+                <Border x:Name="DxPanel"
+                        Visibility="Collapsed"
+                        Background="#F7FAFF"
+                        BorderBrush="#DCE7F5"
+                        BorderThickness="1"
+                        CornerRadius="6">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="数字 → 中文大写"
+                                   FontSize="12"
+                                   Foreground="{StaticResource MutedBrush}"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock x:Name="DxResult"
+                                   FontSize="28"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   TextWrapping="Wrap"
+                                   TextAlignment="Center"
+                                   MaxWidth="580"
+                                   Margin="0,14,0,0"
+                                   Cursor="Hand"
+                                   MouseLeftButtonUp="DxResult_Click" />
+                        <TextBlock x:Name="DxTip"
+                                   FontSize="12"
+                                   Foreground="{StaticResource FaintBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,14,0,0" />
+                    </StackPanel>
+                </Border>
+
+                <!-- 结果排序条：只在文件搜索模式显示，点击标签切换排序字段与升降序 -->
+                <StackPanel x:Name="SortBar"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Top"
+                            Visibility="Collapsed"
+                            Margin="2,0,0,0">
+                    <TextBlock x:Name="SortName" Text="名称"
+                               FontSize="12" Foreground="{StaticResource MutedBrush}"
+                               Cursor="Hand" Margin="0,4,18,4"
+                               MouseLeftButtonUp="SortName_Click" />
+                    <TextBlock x:Name="SortType" Text="类型"
+                               FontSize="12" Foreground="{StaticResource MutedBrush}"
+                               Cursor="Hand" Margin="0,4,18,4"
+                               MouseLeftButtonUp="SortType_Click" />
+                    <TextBlock x:Name="SortModified" Text="修改时间"
+                               FontSize="12" Foreground="{StaticResource MutedBrush}"
+                               Cursor="Hand" Margin="0,4,18,4"
+                               MouseLeftButtonUp="SortModified_Click" />
+                    <TextBlock x:Name="MatchPathToggle" Text="含路径"
+                               FontSize="12" Foreground="{StaticResource MutedBrush}"
+                               Cursor="Hand" Margin="20,4,0,4"
+                               ToolTip="打开后按完整路径匹配，关闭时只匹配文件名"
+                               MouseLeftButtonUp="MatchPathToggle_Click" />
+                </StackPanel>
+            </Grid>
+
+            <!-- 底部：状态提示 + 添加块 + 设置齿轮 -->
+            <Grid Grid.Row="2" Margin="0,12,0,0">
+                <TextBlock x:Name="StatusText"
+                           FontSize="11"
+                           Foreground="{StaticResource FaintBrush}"
+                           VerticalAlignment="Bottom"
+                           Margin="2,0,120,4"
+                           TextTrimming="CharacterEllipsis"
+                           TextWrapping="NoWrap" />
+
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Bottom">
+                    <StackPanel x:Name="AddTile"
+                                Cursor="Hand"
+                                Margin="0,0,16,0"
+                                MouseLeftButtonUp="AddTile_Click"
+                                ToolTip="新增快捷方式（Ctrl+N）">
+                        <Grid Width="56" Height="56" HorizontalAlignment="Center">
+                            <Rectangle RadiusX="6" RadiusY="6"
+                                       Fill="#FFFFFF"
+                                       Stroke="{StaticResource DashBrush}"
+                                       StrokeThickness="1"
+                                       StrokeDashArray="4 3"
+                                       SnapsToDevicePixels="True" />
+                            <TextBlock Text="+"
+                                       FontSize="22"
+                                       Foreground="{StaticResource FaintBrush}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Margin="0,-2,0,0" />
+                        </Grid>
+                        <TextBlock Text="添加"
+                                   FontSize="11"
+                                   Foreground="{StaticResource MutedBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,6,0,0" />
+                    </StackPanel>
+
+                    <Button x:Name="SettingsButton"
+                            Style="{StaticResource GhostButton}"
+                            Width="30" Height="30"
+                            FontFamily="Segoe MDL2 Assets"
+                            FontSize="14"
+                            Content="&#xE713;"
+                            VerticalAlignment="Bottom"
+                            Margin="0,0,0,14"
+                            ToolTip="设置（Ctrl+,）"
+                            Click="Settings_Click" />
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

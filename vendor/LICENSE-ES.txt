@@ -1,0 +1,3 @@
+ES - Everything Command Line Interface (C) 2025 voidtools. MIT License: permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files, to deal in the Software without restriction, subject to inclusion of this notice.
+
+Full text: https://raw.githubusercontent.com/voidtools/es/master/LICENSE
