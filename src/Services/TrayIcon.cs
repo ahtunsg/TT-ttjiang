@@ -37,6 +37,10 @@ public sealed class TrayIcon : IDisposable
     private const int NIF_INFO = 0x10;
     private const int NIIF_INFO = 0x01;
 
+    // 开机自启时通知区域可能尚未就绪，NIM_ADD 会失败；短间隔重试补齐。
+    private const int MaxIconRetries = 10;
+    private const int RetryIntervalSeconds = 2;
+
     private const uint MF_STRING = 0x0000;
     private const uint MF_CHECKED = 0x0008;
     private const uint MF_SEPARATOR = 0x0800;
@@ -84,6 +88,10 @@ public sealed class TrayIcon : IDisposable
     [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern bool Shell_NotifyIcon(int dwMessage, ref NOTIFYICONDATA lpData);
 
+    // Explorer 重启后广播此消息；自定义消息号必须运行时向系统申请。
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern int RegisterWindowMessageW(string lpString);
+
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
     private static extern uint ExtractIconExW(string lpszFile, int nIconIndex,
         out IntPtr phiconLarge, out IntPtr phiconSmall, uint nIcons);
@@ -121,6 +129,10 @@ public sealed class TrayIcon : IDisposable
     private IntPtr _hIcon;
     private bool _ownsIcon;
     private bool _balloonShown;
+    private readonly int _taskbarCreated;
+    private DispatcherTimer _retryTimer;
+    private int _retryCount;
+    private bool _disposed;
 
     public TrayIcon()
     {
@@ -141,12 +153,93 @@ public sealed class TrayIcon : IDisposable
 
         _hIcon = LoadSmallIcon();
 
+        // Explorer 重启（崩溃、系统更新、手动结束进程）会清空通知区域的所有注册项，
+        // 并向顶层窗口广播 TaskbarCreated。不处理它，进程仍在、热键仍灵，图标却永久消失。
+        _taskbarCreated = RegisterWindowMessageW("TaskbarCreated");
+
+        if (!AddIcon())
+        {
+            // 开机自启竞态：程序先于 Explorer 通知区域就绪时 NIM_ADD 会失败，定时重试补齐。
+            ConfigStore.Log("托盘图标注册失败，错误码 " + Marshal.GetLastWin32Error() + "，启动自动重试");
+            StartRetry();
+        }
+    }
+
+    /// <summary>向通知区域注册图标，回调 / 图标 / 提示一次给全。</summary>
+    private bool AddIcon()
+    {
         var data = MakeData();
         data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
         data.uCallbackMessage = TrayMessage;
-        if (!Shell_NotifyIcon(NIM_ADD, ref data))
+        return Shell_NotifyIcon(NIM_ADD, ref data);
+    }
+
+    /// <summary>Explorer 重建任务栏后旧注册项已失效：先删残留，再重新 NIM_ADD。</summary>
+    private void ReRegister()
+    {
+        if (_disposed) return;
+
+        StopRetry();
+        try
         {
-            ConfigStore.Log("托盘图标注册失败，错误码 " + Marshal.GetLastWin32Error());
+            var stale = MakeData();
+            Shell_NotifyIcon(NIM_DELETE, ref stale); // 旧项可能已不存在，忽略返回值
+        }
+        catch
+        {
+            // 清理失败不阻断重新注册
+        }
+
+        if (AddIcon())
+        {
+            ConfigStore.Log("托盘图标已重新注册（资源管理器重启后自动恢复）");
+            return;
+        }
+
+        // 广播到达时通知区域未必已具备接收条件，交给重试兜底。
+        ConfigStore.Log("托盘图标重新注册失败，错误码 " + Marshal.GetLastWin32Error());
+        StartRetry();
+    }
+
+    private void StartRetry()
+    {
+        if (_disposed) return;
+
+        if (_retryTimer == null)
+        {
+            _retryTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(RetryIntervalSeconds) };
+            _retryTimer.Tick += OnRetryTick;
+        }
+
+        _retryCount = 0;
+        _retryTimer.Start();
+    }
+
+    private void StopRetry()
+    {
+        if (_retryTimer != null) _retryTimer.Stop();
+    }
+
+    private void OnRetryTick(object sender, EventArgs e)
+    {
+        if (_disposed)
+        {
+            StopRetry();
+            return;
+        }
+
+        if (AddIcon())
+        {
+            StopRetry();
+            ConfigStore.Log("托盘图标重试注册成功");
+            return;
+        }
+
+        _retryCount++;
+        if (_retryCount >= MaxIconRetries)
+        {
+            StopRetry();
+            ConfigStore.Log("托盘图标重试 " + MaxIconRetries + " 次仍未成功，等待下一次资源管理器广播");
         }
     }
 
@@ -164,6 +257,13 @@ public sealed class TrayIcon : IDisposable
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
+        if (_taskbarCreated != 0 && msg == _taskbarCreated)
+        {
+            ReRegister();
+            handled = true;
+            return IntPtr.Zero;
+        }
+
         if (msg != TrayMessage) return IntPtr.Zero;
 
         int ev = (int)(lParam.ToInt64() & 0xFFFF);
@@ -327,6 +427,9 @@ public sealed class TrayIcon : IDisposable
 
     public void Dispose()
     {
+        _disposed = true;
+        StopRetry();
+
         try
         {
             var data = MakeData();

@@ -3,13 +3,10 @@ chcp 65001 >nul
 setlocal
 cd /d "%~dp0"
 
-rem 优先用工程旁边的便携 SDK，其次用系统 PATH 里的 dotnet
+rem 只用开发者本机 PATH 里的 dotnet；SDK 仅是编译工具，不会进入发布包
 set "DOTNET="
-if exist "%~dp0..\dotnet8sdk\dotnet.exe" set "DOTNET=%~dp0..\dotnet8sdk\dotnet.exe"
-if not defined DOTNET (
-  where dotnet >nul 2>nul
-  if not errorlevel 1 set "DOTNET=dotnet"
-)
+where dotnet >nul 2>nul
+if not errorlevel 1 set "DOTNET=dotnet"
 if not defined DOTNET goto nodotnet
 
 echo ============================================
@@ -24,7 +21,7 @@ if errorlevel 1 goto failed
 
 echo.
 echo [完成] 输出目录：%~dp0dist
-echo 主程序约 2.7 MB（内置搜索引擎），Win10/Win11 自带 .NET Framework 4.8，目标机不需要装任何运行时。
+echo 主程序约 2.8 MB（内置搜索引擎）。目标机 Win10 1903+ / Win11 64 位自带 .NET Framework 4.8，不需要装 .NET 8 或任何额外运行时/SDK。
 echo.
 pause
 exit /b 0
@@ -32,11 +29,8 @@ exit /b 0
 :nodotnet
 echo [错误] 没找到可用的 dotnet。
 echo.
-echo 两种解决方式（任选其一）：
-echo   1. 安装 SDK：winget install Microsoft.DotNet.SDK.8
-echo   2. 把便携 SDK 解压到 %~dp0..\dotnet8sdk
-echo.
-echo 安装地址：https://dotnet.microsoft.com/download/dotnet/8.0
+echo 仅开发机需要安装 .NET SDK（6.0 或更高），目标机不需要任何 SDK 或运行时。
+echo 安装地址：https://dotnet.microsoft.com/download/dotnet
 pause
 exit /b 1
 

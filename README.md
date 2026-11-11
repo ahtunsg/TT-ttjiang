@@ -2,10 +2,15 @@
 
 常驻托盘的 Windows 快速启动面板：图标网格导航、双击 Ctrl 唤起、全盘文件搜索、`dx` 数字转中文大写。内置 Everything 搜索引擎，下载解压即可用，不需要安装任何运行时。
 
-- 版本：2.0.0
+- 版本：2.0.2
 - 技术栈：C# / WPF / .NET Framework 4.8
-- 产物：单个 exe 约 2.8 MB（含内置搜索引擎），Win10 1903+ / Win11 直接运行
-- 系统要求：Windows 10 1903 及以上、Windows 11；不支持 Win7/8/8.1
+- 产物：单个 exe 约 2.8 MB（含内置搜索引擎），解压即用
+- 系统要求：Windows 10 1903 及以上、Windows 11，仅 64 位；系统自带 .NET Framework 4.8，不需要安装 .NET 8 或任何额外运行时/SDK；不支持 Win7/8/8.1 与 32 位系统
+
+## 2.0.2 更新
+
+- 修复资源管理器重启后托盘图标永久消失：监听 `TaskbarCreated` 广播自动重新注册图标；注册失败时按 2 秒间隔最多重试 10 次，同时覆盖开机自启时通知区域尚未就绪的竞态。进程、全局热键与窗口原本就不受影响，此版本只修图标可见性。
+- 发布包改为顶层文件夹并附三份 MIT 许可声明，避免在桌面直接解压时文件散落；压缩包内中文文件名带 UTF-8 标志，英文系统解压不会乱码。
 
 ## 缘起
 
@@ -13,11 +18,11 @@
 
 ## 使用方式
 
-1. 从 [Releases 页面](https://github.com/ahtunsg/ttjiang/releases/latest) 下载 `TTjiang-2.0.0.zip`，解压到任意有写入权限的本地目录（例如桌面、D 盘）。
-2. 双击 `TT酱.exe`。首次启动会做两件事：
+1. 从 [Releases 页面](https://github.com/ahtunsg/TT-ttjiang/releases/latest) 下载 `TTjiang-2.0.2.zip`，解压到任意有写入权限的本地目录（例如桌面、D 盘）。
+2. 双击 `TT酱.exe`。程序默认只驻留托盘、不弹出主窗口；双击 Ctrl 或右键托盘图标选「打开」即可显示窗口。首次启动还会做两件事：
    - 把内置的 Everything、SDK3 查询组件与命令行工具释放到同级 `everything` 目录；
-   - 询问是否安装索引服务（一次管理员授权）。装好之后每次启动都不再询问。如果系统里已经有 Everything 的索引服务，TT酱 直接共用，不会重复安装。
-3. 双击 Ctrl 唤起窗口，输入文件名搜索；点图标启动程序。通过托盘菜单退出。
+   - 询问是否安装索引服务（一次管理员授权，此时会临时显示窗口）。装好之后每次启动都不再询问。如果系统里已经有 Everything 的索引服务，TT酱 直接共用，不会重复安装。
+3. 双击 Ctrl 唤起窗口，输入文件名搜索；点图标启动程序。通过托盘菜单退出。开启「开机自动启动」后，开机同样只在托盘待命。
 
 ## 数据都放在程序目录里
 
@@ -63,17 +68,19 @@ es.exe 仍然保留作回退：SDK3 组件缺失、实例没起来或查询失�
 
 ## 从源码构建
 
-需要 .NET SDK 8（用 `Microsoft.NETFramework.ReferenceAssemblies.net48` 参考程序集交叉编译，不需要装 Visual Studio）：
+目标机不需要任何编译工具。下面这一步只在开发者本机做，用任意 .NET 6+ SDK 或 Visual Studio 的 MSBuild 均可（借助 `Microsoft.NETFramework.ReferenceAssemblies.net48` 参考程序集交叉编译，不需要装 Visual Studio）：
 
 ```
 dotnet publish src/TTJiang.csproj -c Release -p:DebugType=None -p:DebugSymbols=false -o dist
 ```
 
+也可直接双击 `publish.bat`。SDK 只是编译工具，不会进入发布包；发布包里只有 exe、配置、说明和许可文件。
+
 `vendor/everything.zip` 内含 Everything64.exe、Everything3_x64.dll 与 es.exe，作为嵌入资源打进 exe，首次运行释放到 `everything` 目录。三者来自 voidtools 官方发布，均为 MIT 许可，许可声明随包一起释放，允许再分发。
 
-## 为什么是 net48 而不是 .NET 8
+## 为什么目标机零依赖
 
-Win10 1903 起与 Win11 都把 .NET Framework 4.8 作为系统组件预装，程序只输出自己的 IL，不需要捆绑运行时。WPF 不支持 trim/AOT，.NET 8 自包含发布要 64 MB；net48 产物连内置搜索引擎一起也只有约 2.8 MB。内嵌的组件本身已是压缩数据，无法二次压缩，所以分发 zip 与 exe 的体积接近。代价是不再支持 Win7/8/8.1，这正好符合目标平台。
+Win10 1903 起与 Win11（64 位）都把 .NET Framework 4.8 作为系统组件预装，程序只输出自己的 IL，不需要捆绑运行时，也不需要 .NET 8。WPF 不支持 trim/AOT，若改用 .NET 8 自包含发布要 64 MB；net48 产物连内置搜索引擎一起也只有约 2.8 MB。内嵌的组件本身已是压缩数据，无法二次压缩，所以分发 zip 与 exe 的体积接近。代价是不再支持 Win7/8/8.1 与 32 位系统，这正好符合目标平台。
 
 ## 许可
 

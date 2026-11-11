@@ -1,4 +1,3 @@
-using System.Threading;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -112,7 +111,6 @@ public partial class SettingsWindow : Window
 
         InstallButton.IsEnabled = false;
         UninstallButton.IsEnabled = false;
-        TestButton.IsEnabled = false;
         SetStatus(install ? "等待管理员授权…" : "正在卸载…", false);
 
         try
@@ -144,50 +142,7 @@ public partial class SettingsWindow : Window
         }
         finally
         {
-            TestButton.IsEnabled = true;
             RefreshServiceState();
-        }
-    }
-
-    private async void Test_Click(object sender, RoutedEventArgs e)
-    {
-        TestButton.IsEnabled = false;
-        SetStatus("正在测试…", false);
-
-        try
-        {
-            string error = await Task.Run(() =>
-            {
-                if (!EverythingHost.EnsureTools()) return EverythingHost.LastError;
-                if (!EverythingHost.StartClient()) return "内置搜索实例没有起来：" + EverythingHost.LastError;
-                return null;
-            });
-
-            if (error != null)
-            {
-                SetStatus(error, true);
-                return;
-            }
-
-            SearchOutcome outcome = await EverythingSearch.QueryAsync("exe", 5, CancellationToken.None);
-            if (!string.IsNullOrEmpty(outcome.Error))
-            {
-                SetStatus(outcome.Error, true);
-            }
-            else
-            {
-                SetStatus("连接正常，返回 " + outcome.Hits.Count + " 条结果", false);
-            }
-        }
-        catch (Exception ex)
-        {
-            // 测试按钮不能把整个程序带崩
-            ConfigStore.Log("测试搜索异常：" + ex.Message);
-            SetStatus("测试失败：" + ex.Message, true);
-        }
-        finally
-        {
-            TestButton.IsEnabled = true;
         }
     }
 

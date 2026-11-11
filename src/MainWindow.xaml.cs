@@ -216,8 +216,14 @@ public partial class MainWindow : Window
 
     private void ExitApp()
     {
+        if (_exiting) return;
         _exiting = true;
-        Close();
+
+        // 静默启动时窗口可能从未显示过，Close 不一定触发 Closed；
+        // 显式收尾后直接退出应用，托盘菜单的「退出」在任何启动方式下都可靠。
+        try { Close(); }
+        catch { }
+        Application.Current.Shutdown();
     }
 
     /// <summary>从托盘或第二个实例唤回窗口。</summary>

@@ -1,6 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Threading;
 using TTJiang.Services;
 
@@ -53,24 +54,31 @@ public partial class App : Application
 
         var win = new MainWindow();
         MainWindow = win;
-        win.Show();
 
-        StartSearchEngine();
+        // 默认以托盘状态启动：只创建 HWND 让全局热键与托盘图标完成初始化，不显示主窗口。
+        // 没有可见窗口时 OnLastWindowClose 不会自动退出，改由托盘菜单显式调用 Shutdown。
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        new WindowInteropHelper(win).EnsureHandle();
+
+        StartSearchEngine(win);
     }
 
     /// <summary>
     /// 释放内置 Everything、按需安装索引服务、拉起搜索实例。
-    /// 放到窗口显示之后做，首次解压和 UAC 都不会卡住界面。
+    /// 后台执行；需要用户确认或报错时先把主窗口显示出来，避免孤立对话框。
     /// </summary>
-    private void StartSearchEngine()
+    private void StartSearchEngine(MainWindow win)
     {
         Task.Run(() =>
         {
             if (!EverythingHost.EnsureTools())
             {
                 Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    win.ShowFromTray();
                     MessageBox.Show(EverythingHost.LastError, "TT酱",
-                    MessageBoxButton.OK, MessageBoxImage.Warning)));
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                }));
                 return;
             }
 
@@ -79,9 +87,12 @@ public partial class App : Application
                 if (!ConfigStore.CanWrite(dir))
                 {
                     Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        win.ShowFromTray();
                         MessageBox.Show("当前目录没有写入权限，TT酱 需要把配置和索引写在 exe 同级目录。" + Environment.NewLine +
                                         "请把整个文件夹移到有写入权限的位置（例如桌面或 D 盘）后重新打开。",
-                            "TT酱", MessageBoxButton.OK, MessageBoxImage.Error)));
+                            "TT酱", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }));
                     return;
                 }
             }
@@ -95,6 +106,8 @@ public partial class App : Application
                     Task.Run(() => EverythingHost.StartClient(15000));
                     return;
                 }
+
+                win.ShowFromTray();
 
                 MessageBoxResult answer = MessageBox.Show(
                     "首次使用需要安装一次索引服务，用来读取全盘文件索引。" + Environment.NewLine +
