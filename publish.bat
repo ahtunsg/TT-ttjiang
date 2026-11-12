@@ -9,8 +9,16 @@ where dotnet >nul 2>nul
 if not errorlevel 1 set "DOTNET=dotnet"
 if not defined DOTNET goto nodotnet
 
+rem 离线 OCR 模型是构建必需资源，缺失时直接停下，避免打出一个没有 OCR 的包
+if not exist "%~dp0vendor\payload\det.onnx" (
+  echo [错误] vendor\payload 不完整，缺少 det.onnx / rec.onnx 等 OCR 模型。
+  echo 在仓库根目录运行 python tools\fetch_payload.py 生成，再重新构建。
+  pause
+  exit /b 2
+)
+
 echo ============================================
-echo    TT酱 (TTJiang) - net48 单文件发布
+echo    TT酱 (TTJiang) - net48 发布
 echo ============================================
 echo 使用: %DOTNET%
 echo.
@@ -19,9 +27,16 @@ echo.
 
 if errorlevel 1 goto failed
 
+rem 模型不进 exe：这里确认它们确实被复制到 dist\ocr，缺了就补上
+if not exist "%~dp0dist\ocr\det.onnx" (
+  robocopy "%~dp0vendor\payload" "%~dp0dist\ocr" /E >nul
+  if errorlevel 8 goto failed
+)
+
 echo.
 echo [完成] 输出目录：%~dp0dist
-echo 主程序约 2.8 MB（内置搜索引擎）。目标机 Win10 1903+ / Win11 64 位自带 .NET Framework 4.8，不需要装 .NET 8 或任何额外运行时/SDK。
+echo TT酱.exe 约 2.8 MB，同级 ocr 目录约 20 MB（PP-OCRv6 tiny 模型 + onnxruntime），两者必须放在一起分发。
+echo 目标机 Win10 1903+ / Win11 64 位自带 .NET Framework 4.8，不需要装 .NET 8 或任何额外运行时/SDK。
 echo.
 pause
 exit /b 0
