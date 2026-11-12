@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "QetlPPxXcvo=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\Ryan\\WorkBuddy\\TT-酱\\github-upload\\src\\TTJiang.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Ryan\\.nuget\\packages\\microsoft.netframework.referenceassemblies\\1.0.3\\microsoft.netframework.referenceassemblies.1.0.3.nupkg.sha512",
+    "C:\\Users\\Ryan\\.nuget\\packages\\microsoft.netframework.referenceassemblies.net48\\1.0.3\\microsoft.netframework.referenceassemblies.net48.1.0.3.nupkg.sha512"
+  ],
+  "logs": []
+}

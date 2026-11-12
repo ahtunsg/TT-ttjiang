@@ -15,6 +15,7 @@ namespace TTJiang.Services;
 public sealed class TrayIcon : IDisposable
 {
     public Action ShowRequested;
+    public Action ScreenshotRequested;
     public Action AddRequested;
     public Action SettingsRequested;
     public Action ExportRequested;
@@ -57,6 +58,7 @@ public sealed class TrayIcon : IDisposable
     private const int IdRepair = 7;
     private const int IdAutoStart = 8;
     private const int IdExit = 9;
+    private const int IdScreenshot = 10;
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct NOTIFYICONDATA
@@ -288,6 +290,8 @@ public sealed class TrayIcon : IDisposable
 
         try
         {
+            AddItem(menu, IdScreenshot, "截图  (" + Capture.ScreenshotService.HotkeyText + ")", false);
+            Separator(menu);
             AddItem(menu, IdOpen, "打开TT酱", false);
             AddItem(menu, IdAdd, "添加快捷方式…", false);
             AddItem(menu, IdSettings, "设置…", false);
@@ -313,6 +317,7 @@ public sealed class TrayIcon : IDisposable
 
             switch (cmd)
             {
+                case IdScreenshot: Invoke(ScreenshotRequested); break;
                 case IdOpen: Invoke(ShowRequested); break;
                 case IdAdd: Invoke(AddRequested); break;
                 case IdSettings: Invoke(SettingsRequested); break;

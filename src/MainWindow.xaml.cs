@@ -174,6 +174,11 @@ public partial class MainWindow : Window
         try
         {
             _tray = new TrayIcon();
+            _tray.ScreenshotRequested = () => Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var service = Capture.ScreenshotService.Current;
+                if (service != null) service.CaptureNow();
+            }));
             _tray.ShowRequested = () => Dispatcher.BeginInvoke(new Action(ShowFromTray));
             _tray.AddRequested = () => Dispatcher.BeginInvoke(new Action(() =>
             {

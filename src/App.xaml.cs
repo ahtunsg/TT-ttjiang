@@ -21,6 +21,28 @@ public partial class App : Application
     {
         InstallCrashHandlers();
 
+        // 无界面自检：验证 ocr 目录里的模型能找到、能加载并真的识别出文字。
+        // 用法：TT酱.exe --ocr-check out.json [图片路径]
+        int checkIndex = e.Args == null ? -1 : Array.IndexOf(e.Args, "--ocr-check");
+        if (checkIndex >= 0)
+        {
+            string output = checkIndex + 1 < e.Args.Length ? e.Args[checkIndex + 1] : "ocr-check.json";
+            string image = checkIndex + 2 < e.Args.Length ? e.Args[checkIndex + 2] : null;
+            int code = TTJiang.Capture.ScreenshotService.RunCheck(output, image);
+            Shutdown(code);
+            return;
+        }
+
+        // 界面自检：在 UI 线程建原生遮罩窗口并各画一帧，不显示遮罩。
+        int smokeIndex = e.Args == null ? -1 : Array.IndexOf(e.Args, "--capture-smoke");
+        if (smokeIndex >= 0)
+        {
+            string output = smokeIndex + 1 < e.Args.Length ? e.Args[smokeIndex + 1] : "capture-smoke.json";
+            int code = TTJiang.Capture.ScreenshotService.RunSmoke(output);
+            Shutdown(code);
+            return;
+        }
+
         if (!IsSupportedWindows())
         {
             MessageBox.Show(
@@ -60,7 +82,27 @@ public partial class App : Application
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
         new WindowInteropHelper(win).EnsureHandle();
 
+        StartScreenshot(win);
         StartSearchEngine(win);
+    }
+
+    /// <summary>
+    /// 截图与离线 OCR：原生遮罩窗口必须建在 WPF 的 UI 线程上，
+    /// 与 Dispatcher 共用消息泵；截图前先把自己的窗口藏起来，避免截到自己。
+    /// </summary>
+    private void StartScreenshot(MainWindow win)
+    {
+        bool started = TTJiang.Capture.ScreenshotService.Start(delegate
+        {
+            if (!win.IsVisible || win.WindowState == WindowState.Minimized) return false;
+            win.Hide();
+            return true;
+        });
+
+        if (!started)
+        {
+            ConfigStore.Log("截图/OCR 模块未能启动，启动器功能不受影响");
+        }
     }
 
     /// <summary>
@@ -263,6 +305,17 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        // 截图模块持有原生窗口、全局热键与 OCR 工作线程，先收掉
+        try
+        {
+            var capture = TTJiang.Capture.ScreenshotService.Current;
+            if (capture != null) capture.Dispose();
+        }
+        catch
+        {
+            // 退出阶段忽略
+        }
+
         // 先断开 SDK3 长连接并释放 DLL，否则删目录时 DLL 仍被进程占用
         try
         {

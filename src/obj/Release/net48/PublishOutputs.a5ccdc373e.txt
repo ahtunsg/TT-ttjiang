@@ -1,0 +1,11 @@
+C:\Users\Ryan\WorkBuddy\TT-酱\github-upload\dist\ocr\det.onnx
+C:\Users\Ryan\WorkBuddy\TT-酱\github-upload\dist\ocr\keys.txt
+C:\Users\Ryan\WorkBuddy\TT-酱\github-upload\dist\ocr\msvcp140.dll
+C:\Users\Ryan\WorkBuddy\TT-酱\github-upload\dist\ocr\msvcp140_1.dll
+C:\Users\Ryan\WorkBuddy\TT-酱\github-upload\dist\ocr\onnxruntime.dll
+C:\Users\Ryan\WorkBuddy\TT-酱\github-upload\dist\ocr\onnxruntime_providers_shared.dll
+C:\Users\Ryan\WorkBuddy\TT-酱\github-upload\dist\ocr\rec.onnx
+C:\Users\Ryan\WorkBuddy\TT-酱\github-upload\dist\ocr\vcruntime140.dll
+C:\Users\Ryan\WorkBuddy\TT-酱\github-upload\dist\ocr\vcruntime140_1.dll
+C:\Users\Ryan\WorkBuddy\TT-酱\github-upload\dist\TT酱.exe
+C:\Users\Ryan\WorkBuddy\TT-酱\github-upload\dist\TT酱.exe.config
