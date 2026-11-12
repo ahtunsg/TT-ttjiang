@@ -2,3 +2,8 @@ bin/
 obj/
 dist/
 *.user
+
+# OCR 运行文件（约 20 MB 二进制，PP-OCRv6 tiny + onnxruntime）：用 tools/fetch_payload.py 生成，不入库
+vendor/payload/
+vendor/models/
+vendor/ort/
