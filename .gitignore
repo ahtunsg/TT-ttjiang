@@ -1,0 +1,23 @@
+/target/
+/compare/
+/TTjiang-*-rust/
+*.zip
+
+# 运行期生成
+config.json
+shortcuts.json
+ttjiang.log
+*.bak
+
+# 开发期快照与诊断输出
+/ui-*.png
+/screen-*.png
+/shot-*.png
+/about-shot.png
+/tray-anchor.json
+/selftest.json
+/smoke.json
+/show-test.json
+/csharp-*.json
+/rust-*.json
+/ocr-check.json
