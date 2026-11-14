@@ -1,0 +1,15 @@
+[package]
+name = "ttjiang"
+version = "4.2.0"
+edition = "2021"
+
+[[bin]]
+name = "ttjiang"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
