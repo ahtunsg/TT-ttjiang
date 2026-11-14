@@ -1,5 +1,9 @@
 // config.json beside the exe. Same keys, defaults and UTF-8-no-BOM contract
 // as the C# build so an existing install keeps working after the swap.
+//
+// 4.3: show_toast defaults to false (C# / 4.2 used true). An explicit value
+// in an existing config.json still wins, so upgrading an old install keeps
+// whatever it had until that key is set to false or removed.
 
 use std::collections::HashMap;
 
@@ -24,7 +28,8 @@ impl Default for Config {
             ocr_language: String::new(),
             image_format: "png".into(),
             ocr_engine: "auto".into(),
-            show_toast: true,
+            // 默认不显示「文字已复制到剪贴板（N 行）」这类操作提示。
+            show_toast: false,
             recent_language: String::new(),
         }
     }
