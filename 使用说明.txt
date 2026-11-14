@@ -1,9 +1,9 @@
-TT酱 4.2 — 快速启动、全盘搜索与截图 OCR
+TT酱 4.3 — 快速启动、全盘搜索与截图 OCR
 =====================================
 
 运行环境：Windows 10 1903 及以上 / Windows 11，仅 64 位。
 不需要装任何运行时，解压即用：一个约 897 KB 的 TT酱.exe，
-加一个约 44 MB 的 ocr 目录（离线 OCR 模型）与约 6 MB 的 everything
+加一个约 27 MB 的 ocr 目录（离线 OCR 模型）与约 6 MB 的 everything
 目录（搜索引擎）。全程不需要联网。
 ocr 与 everything 目录要和 TT酱.exe 放在一起，不要把 exe 单独拷走。
 
@@ -58,6 +58,11 @@ ocr 与 everything 目录要和 TT酱.exe 放在一起，不要把 exe 单独拷
   拖到空格子会占住那一格、原位置空出来；拖到已有图标的格子会两者互换。
   位置会记在 shortcuts.json 里，下次打开还在。
 - 设置：窗口右下角齿轮。
+- 操作提示默认关闭：不弹「文字已复制到剪贴板（N 行）」「图片已保存」
+  这类浮层，首次启动时托盘区的气泡提示也不弹。复制、保存、识别的结果
+  照常生效，只是没有视觉反馈；错误提示（识别失败、缺少 ocr 文件夹等）
+  也会一并隐藏。需要恢复时，把程序目录下 config.json 里的
+  "show_toast": false 改成 true，重启 TT酱 即可。
 - 退出：右键托盘图标 → 退出。退出时会自动结束内置搜索进程。
 - 任务栏只会有 TT酱 一个图标：内置 Everything 在后台提供索引与查询，
   不显示自己的托盘图标、搜索窗口或任务栏按钮。
@@ -70,11 +75,14 @@ ocr 与 everything 目录要和 TT酱.exe 放在一起，不要把 exe 单独拷
   识别结果直接写入剪贴板；表格是 TSV，可直接粘进 Excel / WPS。
   Esc 或右键取消，框选前、框选后都能按；Enter 等于「复制图片」。
   OCR 模型就在程序目录的 ocr 文件夹里，直接用，不往别处拷贝，也不联网。
-  4.2 起换成 PP-OCRv6 small：小字、密集表格比 4.1 的 tiny 明显更准，
-  代价是单张图大约多花 0.2~0.8 秒。
-  从 4.1 升级时不能只覆盖 TT酱.exe，必须用本包 ocr 目录里的
+  4.3 用混合模型：检测用 PP-OCRv6 small，识别用 PP-OCRv6 tiny。
+  窄列、密集小表格的检出保持 4.2 的水平（六列表格 36/36），
+  识别耗时大约只有 4.2 的一半（17 张回归图均值 537ms → 270ms，
+  中位 448ms → 217ms）。代价是少数字形相近的字比 4.2 容易认错，
+  生僻字覆盖也少一些；全屏满文字的截图仍需 0.5 秒左右。
+  从 4.1 或 4.2 升级时不能只覆盖 TT酱.exe，必须用本包 ocr 目录里的
   det.onnx、rec.onnx、keys.txt 三个文件整体替换旧文件；
-  混着放会提示「模型与字典不是 4.2 的那一套」并拒绝识别。
+  混着放会提示「模型与字典不是 4.3 的那一套」并拒绝识别。
 
 三、删除
 
@@ -99,8 +107,8 @@ ocr 与 everything 目录要和 TT酱.exe 放在一起，不要把 exe 单独拷
 - 换电脑迁移：把整个文件夹拷走即可，索引会自动重建。
 - 识别文字提示「缺少 ocr 文件夹」：TT酱.exe 旁边少了 ocr 目录，
   把压缩包里的 ocr 文件夹放回同一目录即可；截图、存图与搜索不受影响。
-- 识别文字提示「模型与字典不是 4.2 的那一套」：ocr 目录里混了 4.1 的
-  det.onnx / rec.onnx / keys.txt，用 4.2 包里的三个文件整体替换即可。
+- 识别文字提示「模型与字典不是 4.3 的那一套」：ocr 目录里混了 4.2 的
+  rec.onnx / keys.txt（或 4.1 的旧文件），用 4.3 包里的三个文件整体替换即可。
 - 快捷方式迁移：托盘菜单「导出快捷方式…」存成 json，
   到新机器上「导入快捷方式…」。
 
@@ -110,9 +118,10 @@ ocr 与 everything 目录要和 TT酱.exe 放在一起，不要把 exe 单独拷
 遵循 MIT 许可，声明见 everything 目录内 LICENSE 文件。
 Everything 官网：https://www.voidtools.com/
 
-OCR 模型为百度 PaddlePaddle 官方发布的 PP-OCRv6 small ONNX（Apache-2.0），
-onnxruntime 为 Microsoft 发布件，均随包原样分发。模型来源：
+OCR 模型为百度 PaddlePaddle 的 PP-OCRv6 ONNX（Apache-2.0），本包混合使用
+官方 small 检测模型与 v6 tiny 识别模型（含对应字典）；onnxruntime 为
+Microsoft 发布件，均随包原样分发。模型来源：
   https://huggingface.co/PaddlePaddle/PP-OCRv6_small_det_onnx
-  https://huggingface.co/PaddlePaddle/PP-OCRv6_small_rec_onnx
+  https://github.com/RapidAI/RapidOCR
 本程序代码以 MIT 许可发布（Copyright (c) 2026 ahtunsg），可自由使用、修改与再分发。
 项目地址：https://gitee.com/ryansg/TT-ttjiang
