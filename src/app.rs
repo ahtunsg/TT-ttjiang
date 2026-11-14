@@ -331,7 +331,7 @@ pub fn run() {
         };
 
         APP_PTR.with(|p| p.set(&mut app as *mut App));
-        win::log("TT酱 4.2 (Rust) 启动");
+        win::log("TT酱 4.3 (Rust) 启动");
         win::log(&format!("内置文件搜索组件: {}", if everything::components_present() {
             "齐备".to_string()
         } else {
@@ -1822,7 +1822,10 @@ unsafe extern "system" fn wnd_proc(hwnd: win::HWND, msg: u32, w: win::WPARAM, l:
         }
         if !app.balloon_shown && app.tray_added {
             app.balloon_shown = true;
-            tray::balloon(app.host, app.icon);
+            // 4.3: 首次托盘气泡与操作提示浮层共用同一个开关，默认都不弹。
+            if app.config.show_toast {
+                tray::balloon(app.host, app.icon);
+            }
         }
         return win::DefWindowProcW(hwnd, msg, w, l);
     }
@@ -3610,7 +3613,7 @@ fn run_ocr_check(args: &[String]) -> i32 {
                     escj(&w.text), w.x as i32, w.y as i32, w.w as i32, w.h as i32)
             }).collect::<Vec<_>>().join(",");
             let json = format!(
-                "{{\"ok\":true,\"engine\":\"{}\",\"language\":\"{}\",\"ocrMs\":{},\"ocrWords\":{},\"text\":\"{}\",\"table\":\"{}\",\"ocrTiming\":\"{}\",\"model\":\"pp-ocr-v6-small\",\"boxes\":[{}]}}",
+                "{{\"ok\":true,\"engine\":\"{}\",\"language\":\"{}\",\"ocrMs\":{},\"ocrWords\":{},\"text\":\"{}\",\"table\":\"{}\",\"ocrTiming\":\"{}\",\"model\":\"pp-ocr-v6-small-det+tiny-rec\",\"boxes\":[{}]}}",
                 escj(&res.engine), escj(&res.language), start.elapsed().as_millis(),
                 res.words.len(), escj(&plain), escj(&tsv), escj(&engine.last_timing()), boxes);
             write_json(&out_path, &json);
