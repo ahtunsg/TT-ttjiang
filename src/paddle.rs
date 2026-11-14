@@ -1,10 +1,14 @@
 // PP-OCR (PaddleOCR) offline pipeline, ported from
 // github-upload/src/Capture/PaddleOcr.cs (3.3 / pp-ocr-v6 tiny).
 //
-// 4.2 起识别模型换成官方 PP-OCRv6 small（det 9.4 MB、rec 20.2 MB、
-// 字典 18708 字），det/rec 的前后处理参数仍沿用 3.3 这一套：在 17 张
-// 回归图上实测，换成官方 min/736 + thresh 0.2 / box 0.45 之后表格与 UI
-// 都没有变好，耗时反而涨 2~4 倍，所以维持原参数。
+// 4.3 起采用混合配置：det 用官方 PP-OCRv6 small（9.4 MB），
+// rec 用 PP-OCRv6 tiny（4.3 MB、字典 6904 字）。17 张回归图实测：
+// 精度收益几乎全在 small det（窄列、密集小表格不再漏检，六列表格 36/36），
+// 延迟代价几乎全在 small rec（21 MB、18710 类、每个文字框单独推理一次）。
+// 换回 tiny rec 后均值 537ms -> 278ms、中位 448ms -> 220ms。
+// det/rec 的前后处理参数仍沿用 3.3 这一套，小表格自动放大保留：
+// 关闭放大省 19% 但 9 张图掉字；换成官方 min/736 + thresh 0.2 / box 0.45
+// 表格与 UI 都没有变好，耗时反而涨 2~4 倍。
 //
 // 目标：推理与后处理输出与 C# 完全一致。
 // 所有阈值/常量、每条规则逐条照搬；ToChw 改用 crate::image::Image::to_chw
@@ -32,8 +36,8 @@ use crate::types::{OcrResult, OcrWord, Rect};
 // nothing. Table accuracy comes from the rule stripping below instead.
 const DET_MAX_SIDE: i32 = 1280;
 // Small bordered tables are upscaled for the detector only. Below ~1280px the
-// tiny det model starts losing whole narrow columns (see the comment in
-// recognize). The target is capped just under DET_MAX_SIDE on purpose: run
+// detector starts losing whole narrow columns (see the comment in recognize);
+// this holds for both tiny det and 4.3's small det. The target is capped just under DET_MAX_SIDE on purpose: run
 // detector then resamples 1270 -> 1280 (ratio 1.008, no visible filtering),
 // whereas overshooting to 1500 would make it resample back down 1500 -> 1280,
 // which blurs the digits and measured 15 boxes instead of 35.
@@ -42,8 +46,9 @@ const DET_UPSCALE_TARGET: i32 = 1270;
 const DET_UPSCALE_MAX: f64 = 3.0;
 const DET_THRESHOLD: f32 = 0.30;                      // PaddleOcr.cs: DetThreshold = 0.30f
 const BOX_THRESHOLD: f32 = 0.50;                      // PaddleOcr.cs: BoxThreshold = 0.50f
-// 4.2 small 字典 18708 行，CTC 布局为 blank + 字典 + space，共 18710 类。
-const EXPECTED_CLASSES: usize = 18710;
+// 4.3 混合配置用 tiny 的 keys.txt：6904 行，CTC 布局为
+// blank + 字典 + space，共 6906 类。
+const EXPECTED_CLASSES: usize = 6906;
 const REC_HEIGHT: i32 = 48;                           // PaddleOcr.cs: RecHeight
 const REC_MAX_WIDTH: i32 = 640;                       // PaddleOcr.cs: RecMaxWidth
 const REC_OVERLAP: i32 = 96;                          // PaddleOcr.cs: RecOverlap
@@ -262,8 +267,8 @@ impl PaddleOcr {
         Ok(engine)
     }
 
-    /// 4.2：small 的 rec 输出 18710 类（blank + 18708 字典 + space）。
-    /// 只覆盖 exe 却留着 4.1 的 ocr 目录，或把新旧模型与字典混着放，
+    /// 4.3：混合配置用 tiny rec，输出 6906 类（blank + 6904 字典 + space）。
+    /// 只覆盖 exe 却留着 4.2 的 ocr 目录，或把新旧模型与字典混着放，
     /// CTC 都会按错的下标取字，所以加载时跑一次最小推理直接核对。
     fn verify_model_dict(&self) -> Result<(), String> {
         let probe = vec![0f32; 3 * (REC_HEIGHT as usize) * 16];
@@ -272,8 +277,8 @@ impl PaddleOcr {
         let classes = shape.last().copied().unwrap_or(0) as usize;
         if classes != self.dict.len() || self.dict.len() != EXPECTED_CLASSES {
             return Err(format!(
-                "OCR 模型与字典不是 4.2 的那一套（模型输出 {} 类，keys.txt 对应 {} 类）。\n\
-                 请解压 4.2 完整包，用里面的 det.onnx、rec.onnx、keys.txt 三个文件\n\
+                "OCR 模型与字典不是 4.3 的那一套（模型输出 {} 类，keys.txt 对应 {} 类）。\n\
+                 请解压 4.3 完整包，用里面的 det.onnx、rec.onnx、keys.txt 三个文件\n\
                  整体替换 ocr 目录，不要只覆盖 TT酱.exe。",
                 classes, self.dict.len()
             ));
