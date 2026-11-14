@@ -81,7 +81,7 @@ pub const ID_PICK_ICON: i32 = 114;
 pub const ID_CLEAR_ICON: i32 = 115;
 
 /// Project home page, shown in the About window.
-pub const GITHUB_URL: &str = "https://github.com/ahtunsg/TT-ttjiang";
+pub const PROJECT_URL: &str = "https://gitee.com/ryansg/TT-ttjiang";
 
 const WS_CHILD: u32 = 0x4000_0000;
 const WS_VISIBLE: u32 = 0x1000_0000;
@@ -294,7 +294,7 @@ pub(crate) fn build_card(kind: DialogKind, service_text: &str) -> Card {
             c.rule(82);
             c.text("双击 Ctrl 唤起窗口 · Ctrl+1 截图识别文字与表格", 32, 94, 12, false, Tone::Ink);
             c.text("项目源", 32, 120, 12, false, Tone::Dim);
-            c.text(GITHUB_URL, 86, 120, 12, false, Tone::Accent);
+            c.text(PROJECT_URL, 86, 120, 12, false, Tone::Accent);
             c.text("MIT License © 2026 ahtunsg", 32, 152, 11, false, Tone::Faint);
             c.button(ID_CANCEL, "关闭", 324, 168, 104, 34, true);
         }
