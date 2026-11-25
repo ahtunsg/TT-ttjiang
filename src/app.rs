@@ -200,6 +200,7 @@ pub fn run() {
         let headless = args.first()
             .map(|a| a == "--ui-smoke" || a == "--overlay-shot" || a == "--about-shot"
                 || a == "--dialog-shot" || a == "--tray-anchor" || a == "--show-test"
+                || a == "--restore-test"
                 || a == "--click-test" || a == "--dialog-screen" || a == "--panel-screen"
                 || a == "--add-click-test" || a == "--icon-dump" || a == "--paste-test"
                 || a == "--esc-test" || a == "--key-test" || a == "--field-shot")
@@ -331,7 +332,7 @@ pub fn run() {
         };
 
         APP_PTR.with(|p| p.set(&mut app as *mut App));
-        win::log("TT酱 4.3 (Rust) 启动");
+        win::log("TT酱 4.4 (Rust) 启动");
         win::log(&format!("内置文件搜索组件: {}", if everything::components_present() {
             "齐备".to_string()
         } else {
@@ -483,6 +484,45 @@ pub fn run() {
                 let _ = std::fs::write(&out, body);
             }
             std::process::exit(0);
+        }
+
+        if !args.is_empty() && args[0] == "--restore-test" {
+            // Guards the "wake leaves the panel minimised" invariant: minimise
+            // the real window, then wake it the same way the tray double-click
+            // does (show_main) and assert it comes back non-iconic. SW_SHOW
+            // cannot un-minimise, so the wake must always go through
+            // SW_RESTORE — not only when IsIconic happens to read true at that
+            // instant (the original bug: during the minimise transition it
+            // reads false, and the panel stayed an icon).
+            let out = args.get(1).cloned().unwrap_or_else(|| "restore.json".into());
+            app.show_main();
+            let mut m: win::MSG = Default::default();
+            let pump = |ms: u64, m: &mut win::MSG| {
+                let t0 = std::time::Instant::now();
+                while t0.elapsed() < std::time::Duration::from_millis(ms) {
+                    while win::PeekMessageW(m, std::ptr::null_mut(), 0, 0, 1) > 0 {
+                        win::TranslateMessage(m);
+                        win::DispatchMessageW(m);
+                    }
+                    win::Sleep(8);
+                }
+            };
+            pump(200, &mut m);
+            unsafe { win::ShowWindow(app.main, win::SW_MINIMIZE); }
+            pump(220, &mut m);
+            let was_iconic = unsafe { win::IsIconic(app.main) != 0 };
+            // Wake through the exact path the tray double-click uses.
+            app.show_main();
+            pump(220, &mut m);
+            let (iconic, visible) = unsafe {
+                (win::IsIconic(app.main) != 0, win::IsWindowVisible(app.main) != 0)
+            };
+            let ok = was_iconic && !iconic && visible;
+            let _ = std::fs::write(&out, format!(
+                "{{\n  \"minimisedFirst\": {},\n  \"stillIconicAfterWake\": {},\n  \
+                 \"visibleAfterWake\": {},\n  \"ok\": {}\n}}\n",
+                was_iconic, iconic, visible, ok));
+            std::process::exit(if ok { 0 } else { 1 });
         }
 
         if !args.is_empty() && args[0] == "--dialog-screen" {
@@ -1042,13 +1082,15 @@ impl App {
             self.hover_row = -1;
             self.hover_add = false;
             win::KillTimer(self.host, TIMER_SEARCH_DEBOUNCE);
-            // A minimised or maximised window has to be restored first: the
-            // panel is a fixed-size launcher, and moving a maximised window
-            // does not change what the user sees.
-            if win::IsIconic(self.main) != 0 || win::IsZoomed(self.main) != 0 {
-                win::ShowWindow(self.main, win::SW_RESTORE);
-            }
-            win::ShowWindow(self.main, win::SW_SHOW);
+            // Always SW_RESTORE, never SW_SHOW. SW_SHOW displays a window at
+            // its *current* size and position, which leaves a minimised window
+            // as an icon. The old IsIconic/IsZoomed guard could miss a window
+            // still inside its minimise transition when the tray double-click
+            // arrived, so only SW_SHOW ran and the panel stayed minimised —
+            // the intermittent "wake leaves it minimised" report.
+            // SW_RESTORE is idempotent: it un-minimises, un-maximises and shows
+            // a hidden window in one step, covering all four states at once.
+            win::ShowWindow(self.main, win::SW_RESTORE);
             // Always open where the user expects it, even if the window was
             // dragged somewhere else last time.
             win::center_window_below(self.main, PANEL_DROP_PCT);
