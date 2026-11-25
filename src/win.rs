@@ -228,6 +228,7 @@ pub const SWP_SHOWWINDOW: u32 = 0x0040;
 pub const SW_HIDE: i32 = 0;
 pub const SW_SHOW: i32 = 5;
 pub const SW_SHOWNOACTIVATE: i32 = 4;
+pub const SW_MINIMIZE: i32 = 6;
 pub const SW_RESTORE: i32 = 9;
 pub const SRCCOPY: u32 = 0x00CC_0020;
 pub const CAPTUREBLT: u32 = 0x4000_0000;
