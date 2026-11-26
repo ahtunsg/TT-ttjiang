@@ -293,11 +293,15 @@ impl ActionBar {
     /// it never leaves the work area.
     pub fn place_near(&self, _sel: Rect) {
         unsafe {
-            let wa = win::work_area();
             let mut pt = win::POINT { x: 0, y: 0 };
             win::GetCursorPos(&mut pt);
             let cx = if pt.x != 0 || pt.y != 0 { pt.x } else { _sel.right() };
             let cy = if pt.x != 0 || pt.y != 0 { pt.y } else { _sel.bottom() };
+            // The bar must stay on the monitor the user selected on. The old
+            // SPI_GETWORKAREA query only knew the primary screen, so a
+            // selection on a left-hand secondary display clamped the bar back
+            // to x=4 on the primary monitor.
+            let wa = win::work_area_at(win::POINT { x: cx, y: cy });
 
             let gap = 12;
             let mut x = cx - self.w / 2;
@@ -451,7 +455,10 @@ impl Toast {
         unsafe {
             self.text = text.into();
             self.ok = ok;
-            let wa = win::work_area();
+            // Follow the monitor the pointer is on, not always the primary one.
+            let mut pt = win::POINT { x: 0, y: 0 };
+            win::GetCursorPos(&mut pt);
+            let wa = win::work_area_at(pt);
             let x = wa.right() - 470 - 24;
             let y = wa.bottom() - 46 - 28;
             win::SetWindowPos(
