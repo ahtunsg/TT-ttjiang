@@ -245,6 +245,7 @@ pub const SPI_GETWORKAREA: u32 = 0x0030;
 pub const HWND_TOPMOST: HWND = -1isize as HWND;
 pub const HWND_NOTOPMOST: HWND = -2isize as HWND;
 pub const MONITOR_DEFAULTTOPRIMARY: u32 = 0x0000_0001;
+pub const MONITOR_DEFAULTTONEAREST: u32 = 0x0000_0002;
 pub const WM_PAINT: u32 = 0x000F;
 pub const WM_ERASEBKGND: u32 = 0x0014;
 pub const WM_DESTROY: u32 = 0x0002;
@@ -725,6 +726,31 @@ pub fn primary_work_area() -> Rect {
     }
     // SPI_GETWORKAREA is also primary-only, so this fallback keeps the same
     // meaning rather than silently reverting to the whole desktop.
+    work_area()
+}
+
+/// Work area of the monitor that contains `pt`, in physical pixels.
+///
+/// SPI_GETWORKAREA only describes the primary monitor. On a multi-monitor desk
+/// that made the screenshot action bar clamp back onto the primary screen even
+/// when the selection sat on a secondary one (the overlay spans the whole
+/// virtual desktop, so coordinates there are routinely negative).
+pub fn work_area_at(pt: POINT) -> Rect {
+    unsafe {
+        let mon = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+        if !mon.is_null() {
+            let mut mi = MONITORINFO {
+                cbSize: std::mem::size_of::<MONITORINFO>() as u32,
+                ..Default::default()
+            };
+            if GetMonitorInfoW(mon, &mut mi) != 0 {
+                let (w, h) = (mi.rcWork.right - mi.rcWork.left, mi.rcWork.bottom - mi.rcWork.top);
+                if w > 0 && h > 0 {
+                    return Rect::new(mi.rcWork.left, mi.rcWork.top, w, h);
+                }
+            }
+        }
+    }
     work_area()
 }
 
